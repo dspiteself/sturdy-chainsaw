@@ -1,6 +1,10 @@
-(ns com.dspiteself.sturdy-chainsaw)
+(ns com.dspiteself.sturdy-chainsaw
+  (:require [malli.core :as m]))
 
-(defn foo
-  "I don't do a whole lot."
-  [x]
-  (prn x "Hello, World!"))
+
+
+
+(comment
+
+
+  )
