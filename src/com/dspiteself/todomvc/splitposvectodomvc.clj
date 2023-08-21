@@ -76,5 +76,6 @@
 
 (defn init []
   {:filter :all
-   :task-completed? []
-   :task-text []})
+   :task-completed? (vector-of :boolean)
+   :task-text []
+   :task-pos (vector-of :long)})

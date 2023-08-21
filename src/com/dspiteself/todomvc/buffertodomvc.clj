@@ -1,6 +1,8 @@
-(ns com.dspiteself.todomvc.inlinedtodomvc
-  (:require [malli.core :as m]))
-
+(ns com.dspiteself.todomvc.buffertodomvc
+  (:require [malli.core :as m])
+  (:import (io.netty5.buffer Buffer BufferAllocator)
+           (java.nio.charset Charset)))
+(set! *warn-on-reflection* true)
 (def application-state
   (m/schema
     [:map
@@ -11,11 +13,15 @@
      [:task-text [:vector
                   :string]]]))
 
-(defn add-task [state text]
-  (-> state
-      (update :task-completed? conj false)
-      (update :task-text conj text))
-  )
+(def ^Charset utf (Charset/forName "UTF-8"))
+(defn add-task [state ^String text]
+  (let [task-completed? ^Buffer (:task-completed? state)
+        task-text-starts ^Buffer (:task-text-starts state)
+        task-text-data ^Buffer (:task-text-data state)]
+    (.writeBoolean task-completed? false)
+    (.writeCharSequence task-text-data text utf)
+    (.writeInt task-text-starts (.writerOffset task-text-data))
+    state))
 (defn remove-task [state id]
   (-> state
       (update :task-completed?
@@ -69,7 +75,21 @@
 (defn select-filter [state f]
   (assoc state :filter f))
 
+(defn reset-state [state]
+  (let [task-completed? ^Buffer (:task-completed? state)
+        task-text-starts ^Buffer (:task-text-starts state)
+        task-text-data ^Buffer (:task-text-data state)]
+    (.writerOffset task-completed? 0)
+    (.writerOffset task-text-starts 0)
+    (.writerOffset task-text-data 0)
+    (.readerOffset task-completed? 0)
+    (.readerOffset task-text-starts 0)
+    (.readerOffset task-text-data 0)
+    state))
+
+(def ^BufferAllocator default-allocator (BufferAllocator/onHeapPooled ))
 (defn init []
   {:filter :all
-   :task-completed? (vector-of :boolean)
-   :task-text []})
+   :task-completed? (.allocate default-allocator 100)
+   :task-text-starts (.allocate default-allocator 100)
+   :task-text-data (.allocate default-allocator 1000)})
